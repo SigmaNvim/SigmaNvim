@@ -7,5 +7,5 @@ RUN cd neovim && make CMAKE_BUILD_TYPE=RelWithDebInfo
 RUN cd neovim && make install
 WORKDIR /sigma
 COPY quick_start.lua /sigma
-# CMD ["bash", "-c", "lua /sigma/quick_start.lua && nvim"]
+# ENTRYPOINT ["lua /sigma/quick_start.lua"]
 

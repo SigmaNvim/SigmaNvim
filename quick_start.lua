@@ -96,7 +96,6 @@ if is_docker ~= nil then
     local cloned = default_clone()
     if cloned then
       print "Cloned succesfully."
-      os.execute "nvim"
     end
   end
 end
