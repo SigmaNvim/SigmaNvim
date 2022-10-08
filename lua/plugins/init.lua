@@ -24,7 +24,7 @@ local plugins = {
   },
 
   ["SigmaNvim/UI"] = {
-    after = "Base46",
+    after = "base46",
     config = function()
       local present, sigma_ui = pcall(require, "sigma_ui")
 
@@ -151,7 +151,7 @@ local plugins = {
   },
 
   ["goolord/alpha-nvim"] = {
-    after = "Base46",
+    after = "base46",
     disable = true,
     config = function()
       require "plugins.configs.alpha"
