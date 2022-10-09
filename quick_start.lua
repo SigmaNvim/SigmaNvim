@@ -82,6 +82,8 @@ if is_docker ~= nil then
     copy_example_files()
     if cloned then
       print "Cloned succesfully"
+      copy_example_files()
+      os.execute("nvim")
     end
   end
   if different_repo_and_branch then
@@ -90,13 +92,15 @@ if is_docker ~= nil then
     if cloned then
       print "Cloned succesfully"
       copy_example_files()
+      os.execute("nvim")
     end
   end
   if not different_branch and not different_repo_and_branch then
     local cloned = default_clone()
     if cloned then
       print "Cloned succesfully."
-      os.execute "nvim"
+      copy_example_files()
+      os.execute("nvim")
     end
   end
 end

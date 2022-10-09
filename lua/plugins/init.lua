@@ -15,7 +15,7 @@ local plugins = {
 
   ["SigmaNvim/Base46"] = {
     config = function()
-      local ok, base46 = pcall(require, "Base46")
+      local ok, base46 = pcall(require, "base46")
 
       if ok then
         base46.load_theme()
