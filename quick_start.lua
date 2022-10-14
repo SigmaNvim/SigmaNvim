@@ -14,8 +14,15 @@ local different_branch = function()
   return false
 end
 
+local different_repo = function()
+  if custom_repo ~= nil then
+    return true
+  end
+  return false
+end
+
 local different_repo_and_branch = function()
-  if custom_repo ~= nil and different_branch() then
+  if different_repo() and different_branch() then
     return true
   end
   return false
@@ -99,11 +106,20 @@ local function interactive_setup()
 end
 
 local function docker_setup()
-  if different_branch() and not different_repo_and_branch() then
+  if different_branch() and not different_repo() then
     local cloned = different_branch_clone(custom_branch)
     if cloned then
       print "Cloned succesfully"
       copy_example_files()
+      return true
+    end
+    return false
+  end
+  if not different_branch() and different_repo() then
+    local cloned = default_clone()
+    local custom_repo_clone = clone_repo(custom_repo, custom_path)
+    if cloned and custom_repo_clone then
+      print "Cloned succesfully"
       return true
     end
     return false
@@ -117,7 +133,7 @@ local function docker_setup()
     end
     return false
   end
-  if not different_branch() and not different_repo_and_branch() then
+  if not different_repo_and_branch() then
     local cloned = default_clone()
     if cloned then
       print "Cloned succesfully."
