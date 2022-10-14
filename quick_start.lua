@@ -1,21 +1,32 @@
 local home = os.getenv "HOME"
-local custom_path = home .. "/.config/nvim/lua/custom/"
-local example_path = home .. "/.config/nvim/example/"
+local nvim_path = home .. "/.config/nvim/"
+local custom_path = nvim_path .. "lua/custom/"
+local example_path = nvim_path .. "example/"
 
-local function tablelength(T)
-  local count = 0
-  for _ in pairs(T) do
-    count = count + 1
+local is_docker = os.getenv "DOCKER_RUN"
+local custom_branch = os.getenv "CUSTOM_BRANCH"
+local custom_repo = os.getenv "CUSTOM_REPO"
+
+local different_branch = function()
+  if custom_branch ~= nil then
+    return true
   end
-  return count
+  return false
 end
 
-local arg_len = tablelength(arg)
-local different_branch = arg_len == 3
-local different_repo_and_branch = arg_len == 4
-local is_docker = os.getenv "DOCKER_RUN"
-local custom_branch = arg[1]
-local custom_repo = arg[2]
+local different_repo = function()
+  if custom_repo ~= nil then
+    return true
+  end
+  return false
+end
+
+local different_repo_and_branch = function()
+  if different_repo() and different_branch() then
+    return true
+  end
+  return false
+end
 
 local directory_contents = {
   "mappings.lua",
@@ -24,26 +35,46 @@ local directory_contents = {
   "plugins/",
 }
 
-local function copy_example_files()
-  for file_num in pairs(directory_contents) do
-    os.rename(example_path .. directory_contents[file_num], custom_path .. directory_contents[file_num])
-  end
-end
-
 local function create_directory(path)
   os.execute("mkdir -p " .. path)
 end
+
+local function copy_example_files()
+  create_directory(custom_path)
+  for file_num in pairs(directory_contents) do
+    local okay = os.rename(example_path .. directory_contents[file_num], custom_path .. directory_contents[file_num])
+    if okay then
+      print(
+        "COPYING: "
+          .. example_path
+          .. directory_contents[file_num]
+          .. " -> "
+          .. custom_path
+          .. directory_contents[file_num]
+      )
+    end
+  end
+end
+
 local function clone_repo(url, path_to_clone)
+  print("CLONING: " .. url)
   return os.execute("git clone " .. url .. " " .. path_to_clone)
 end
+
 local function default_clone()
-  return os.execute "git clone https://github.com/SigmaNvim/SigmaNvim.git ~/.config/nvim --depth 1"
+  return os.execute("git clone https://github.com/SigmaNvim/SigmaNvim.git " .. nvim_path .. " --depth 1")
+end
+
+local function different_branch_clone(branch)
+  return os.execute(
+    "git clone --branch " .. branch .. " https://github.com/SigmaNvim/SigmaNvim.git " .. nvim_path .. " --depth 1"
+  )
 end
 
 -- --
 -- --
 
-if is_docker == nil then
+local function interactive_setup()
   local answer
   repeat
     io.write "Would you like to initilize with default configuration or supply a git repo url to a previous configuration?\n('y' for default / 'n' for custom git): "
@@ -74,33 +105,51 @@ if is_docker == nil then
   end
 end
 
-if is_docker ~= nil then
-  if different_branch then
-    local cloned = os.execute(
-      "git clone --branch " .. custom_branch .. " https://github.com/SigmaNvim/SigmaNvim.git ~/.config/nvim --depth 1"
-    )
-    copy_example_files()
+local function docker_setup()
+  if different_branch() and not different_repo() then
+    local cloned = different_branch_clone(custom_branch)
     if cloned then
       print "Cloned succesfully"
       copy_example_files()
-      os.execute("nvim")
+      return true
     end
+    return false
   end
-  if different_repo_and_branch then
-    local cloned =
-      os.execute("git clone --branch " .. custom_branch .. " " .. custom_repo .. " ~/.config/nvim --depth 1")
-    if cloned then
+  if not different_branch() and different_repo() then
+    local cloned = default_clone()
+    local custom_repo_clone = clone_repo(custom_repo, custom_path)
+    if cloned and custom_repo_clone then
       print "Cloned succesfully"
-      copy_example_files()
-      os.execute("nvim")
+      return true
     end
+    return false
   end
-  if not different_branch and not different_repo_and_branch then
+  if different_repo_and_branch() then
+    local cloned_repo = different_branch_clone(custom_branch)
+    local clone_custom = clone_repo(custom_repo, custom_path)
+    if cloned_repo and clone_custom then
+      print "Cloned succesfully"
+      return true
+    end
+    return false
+  end
+  if not different_repo_and_branch() then
     local cloned = default_clone()
     if cloned then
       print "Cloned succesfully."
       copy_example_files()
-      os.execute("nvim")
+      return true
     end
+    return false
   end
 end
+
+if is_docker ~= nil then
+  docker_setup()
+end
+
+if is_docker == nil then
+  interactive_setup()
+end
+
+os.execute "nvim"
